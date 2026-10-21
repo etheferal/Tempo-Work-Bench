@@ -1,0 +1,229 @@
+// Tempo — Prisma schema
+// SQLite is used by default for a zero-config local setup.
+// See ARCHITECTURE.md for instructions on switching to PostgreSQL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  emailVerified DateTime?
+  passwordHash  String
+  image         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  memberships      Member[]
+  ownedWorkspaces  Workspace[]   @relation("WorkspaceOwner")
+  assignedTasks    Task[]         @relation("Assignee")
+  createdTasks     Task[]        @relation("TaskCreator")
+  comments         Comment[]
+  activities       Activity[]
+  notifications    Notification[]
+  invitesSent      Invite[]       @relation("Inviter")
+  uploadedAttachments TaskAttachment[] @relation("AttachmentUploader")
+}
+
+model Workspace {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?
+  ownerId     String
+  owner       User       @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  members     Member[]
+  projects    Project[]
+  labels      Label[]
+  invites     Invite[]
+  activities  Activity[]
+}
+
+model Member {
+  id          String    @id @default(cuid())
+  /// OWNER | ADMIN | MEMBER (SQLite has no native enums)
+  role        String    @default("MEMBER")
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+}
+
+model Invite {
+  id          String    @id @default(cuid())
+  email       String
+  /// ADMIN | MEMBER
+  role        String    @default("MEMBER")
+  token       String    @unique
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  inviterId   String
+  inviter     User      @relation("Inviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([workspaceId, email])
+}
+
+model Project {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  color       String     @default("#6366f1")
+  archivedAt  DateTime?
+  workspaceId String
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  columns     Column[]
+  tasks       Task[]
+  activities  Activity[]
+}
+
+model Column {
+  id        String   @id @default(cuid())
+  name      String
+  order     Int
+  /// Tasks in a "done" column count as completed
+  isDone    Boolean  @default(false)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+
+  @@index([projectId])
+}
+
+model Task {
+  id          String          @id @default(cuid())
+  title       String
+  description String?
+  /// LOW | MEDIUM | HIGH | URGENT
+  priority    String          @default("MEDIUM")
+  /// NONE | DAILY | WEEKLY | MONTHLY — completed occurrences respawn with a new due date
+  recurrence  String          @default("NONE")
+  order       Int
+  dueAt       DateTime?
+  completedAt DateTime?
+  columnId    String
+  column      Column          @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  projectId   String
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assigneeId  String?
+  assignee    User?           @relation("Assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   User?           @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  labels      TaskLabel[]
+  checklist   ChecklistItem[]
+  comments    Comment[]
+  attachments TaskAttachment[]
+  activities  Activity[]
+
+  @@index([projectId])
+  @@index([assigneeId])
+}
+
+model Label {
+  id          String      @id @default(cuid())
+  name        String
+  color       String      @default("#6366f1")
+  workspaceId String
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tasks       TaskLabel[]
+
+  @@unique([workspaceId, name])
+}
+
+model TaskLabel {
+  taskId  String
+  task    Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  labelId String
+  label   Label   @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, labelId])
+}
+
+model ChecklistItem {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  content   String
+  done      Boolean  @default(false)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id          String    @id @default(cuid())
+  /// One of the ACTIVITY_TYPES in src/lib/constants.ts
+  type        String
+  /// JSON payload with human-readable details
+  meta        String?
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  taskId      String?
+  task        Task?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+
+  @@index([workspaceId, createdAt])
+}
+
+model TaskAttachment {
+  id           String   @id @default(cuid())
+  taskId       String
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  /// Display name (original filename, sanitized)
+  name         String
+  /// On-disk filename inside uploads/<taskId>/ (uuid + safe extension)
+  storedName   String   @unique
+  mime         String
+  /// Size in bytes
+  size         Int
+  uploadedById String
+  uploadedBy   User     @relation("AttachmentUploader", fields: [uploadedById], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@index([taskId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  /// One of the NOTIFICATION_TYPES in src/lib/constants.ts
+  type      String
+  /// JSON payload: { taskId, projectId, actorName, message }
+  meta      String?
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}

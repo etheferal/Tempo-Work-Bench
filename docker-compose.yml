@@ -1,0 +1,34 @@
+# Tempo — local orchestration
+#
+#   docker compose up              → app on :3000 with SQLite (persistent volume)
+#   docker compose --profile postgres up   → also starts PostgreSQL on :5432
+#   (see ARCHITECTURE.md for switching the app to PostgreSQL)
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "file:/app/prisma/tempo.db"
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "change-me-in-production"
+    volumes:
+      - ./docker-data:/app/prisma
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: tempo
+      POSTGRES_PASSWORD: tempo
+      POSTGRES_DB: tempo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:

@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 6% 95%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --muted: 240 5% 92%;
+    --muted-foreground: 240 4% 42%;
+    --accent: 240 5% 90%;
+    --accent-foreground: 240 6% 10%;
+    --border: 240 6% 85%;
+    --input: 240 6% 85%;
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 243 75% 59%;
+    --danger: 346.8 77.2% 49.8%;
+    --success: 160 84% 39%;
+    --sidebar: 240 6% 93%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 8% 6%;
+    --card-foreground: 0 0% 98%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 17.9%;
+    --accent-foreground: 0 0% 98%;
+    --border: 240 4% 19%;
+    --input: 240 4% 21%;
+    --primary: 243 85% 68%;
+    --primary-foreground: 240 5.9% 4%;
+    --ring: 243 85% 68%;
+    --danger: 346.8 70% 45%;
+    --success: 160 84% 39%;
+    --sidebar: 240 8% 5.5%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+/* Subtle scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 8px;
+}
+
+/* Lightweight markdown styles (task descriptions & comments) */
+.markdown {
+  @apply text-sm leading-relaxed;
+}
+.markdown > *:first-child {
+  margin-top: 0;
+}
+.markdown > *:last-child {
+  margin-bottom: 0;
+}
+.markdown p {
+  @apply my-2;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+  @apply mt-4 mb-2 font-semibold;
+}
+.markdown h1 {
+  @apply text-lg;
+}
+.markdown h2 {
+  @apply text-base;
+}
+.markdown h3 {
+  @apply text-sm;
+}
+.markdown ul {
+  @apply my-2 list-disc pl-5;
+}
+.markdown ol {
+  @apply my-2 list-decimal pl-5;
+}
+.markdown li {
+  @apply my-0.5;
+}
+.markdown a {
+  @apply text-primary underline underline-offset-2;
+}
+.markdown code {
+  @apply rounded bg-muted px-1 py-0.5 font-mono text-[13px];
+}
+.markdown pre {
+  @apply my-2 overflow-x-auto rounded-lg bg-muted p-3;
+}
+.markdown pre code {
+  @apply bg-transparent p-0;
+}
+.markdown blockquote {
+  @apply my-2 border-l-2 border-border pl-3 text-muted-foreground;
+}
+.markdown hr {
+  @apply my-3 border-border;
+}
+.markdown table {
+  @apply my-2 w-full text-sm;
+}
+.markdown th,
+.markdown td {
+  @apply border border-border px-2 py-1 text-left;
+}
